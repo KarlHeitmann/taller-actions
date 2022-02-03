@@ -1,0 +1,58 @@
+name: Code Checks
+
+on:
+  pull_request:
+
+jobs:
+  static-analysis:
+    name: Static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v1
+
+      - name: Setup Ruby and install gems
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Run rubocop
+        uses: reviewdog/action-rubocop@v1
+        with:
+          rubocop_version: gemfile
+          rubocop_extensions: rubocop-rails:gemfile rubocop-rspec:gemfile
+          github_token: ${{ secrets.github_token }}
+
+      - name: Run brakeman
+        uses: reviewdog/action-brakeman@v1
+        with:
+          brakeman_version: gemfile
+
+  rspec:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v1
+
+      - name: Setup Ruby and install gems
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Setup PostgreSQL
+        uses: Harmon758/postgresql-action@v1.0.0
+        with:
+          postgresql user: poliglota
+          postgresql password: poliglota1234
+
+      - name: Run specs
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_USERNAME: poliglota
+          DATABASE_PASSWORD: poliglota1234
+          DATABASE: api-classroom
+          RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
+
+        run: |
+          bin/rails db:create
+          bundle exec rspec
